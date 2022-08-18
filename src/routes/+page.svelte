@@ -3,6 +3,8 @@
 	import { onMount } from 'svelte';
 	import { isPeerMessage } from '$lib/types';
 	import { peers } from '$lib/stores';
+	import Camera from '$lib/components/Camera.svelte';
+	import Video from '$lib/components/Video.svelte';
 
 	let name: string;
 	let socket: WebSocket | undefined;
@@ -44,17 +46,21 @@
 			ws.close();
 		};
 	});
+
+	let stream: MediaStream | undefined;
 </script>
 
 <main>
 	<h1>GameRoom</h1>
 	<input bind:this={nameInput} bind:value={name} placeholder="Name" />
+	<Camera videoSize={{ width: 400, height: 225 }} bind:stream />
+	<Video {stream} size={{ width: 400, height: 225 }} />
 </main>
 
 <style>
 	main {
 		margin: 4rem auto;
-		width: 600px;
+		width: 400px;
 		padding: 1rem;
 		display: flex;
 		flex-direction: column;
