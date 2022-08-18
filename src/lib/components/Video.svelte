@@ -1,6 +1,5 @@
 <script type="ts">
 	export let stream: MediaStream | undefined = undefined;
-	export let size: { width: number; height: number };
 
 	let video: HTMLVideoElement | undefined;
 
@@ -11,18 +10,26 @@
 	}
 </script>
 
-<video
-	bind:this={video}
-	autoplay
-	playsinline
-	style={`width:${size.width}px; height:${size.height}px`}
->
-	<track kind="captions" />
-</video>
+<div>
+	<video bind:this={video} autoplay playsinline>
+		<track kind="captions" />
+	</video>
+</div>
 
 <style>
-	video {
+	div {
 		border: var(--border-normal);
 		border-radius: var(--border-radius-normal);
+		position: relative;
+		aspect-ratio: 16 / 9;
+		flex-grow: 1;
+	}
+
+	video {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
 	}
 </style>

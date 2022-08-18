@@ -1,11 +1,15 @@
 <script type="ts">
 	export let value: string;
+	export let placeholder: string | undefined = undefined;
 </script>
 
 <div class="select">
-	<select bind:value on:change {...$$restProps}>
+	<select bind:value on:change {...$$restProps} {placeholder}>
 		<slot />
 	</select>
+	{#if placeholder && !value}
+		<span class="placeholder">{placeholder}</span>
+	{/if}
 	<div class="arrow" />
 </div>
 
@@ -17,6 +21,7 @@
 		border: var(--border-normal);
 		border-radius: var(--border-radius-normal);
 		flex-grow: 1;
+		position: relative;
 	}
 
 	select {
@@ -36,5 +41,12 @@
 		position: absolute;
 		right: 0.5rem;
 		width: 0.5rem;
+	}
+
+	.placeholder {
+		position: absolute;
+		left: 0.5rem;
+		color: #aaa;
+		font-style: italic;
 	}
 </style>

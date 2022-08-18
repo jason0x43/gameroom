@@ -1,13 +1,13 @@
 <script type="ts">
 	import { loadCameras, openStream, stopStream } from '$lib/rtc';
-	import { cameras } from '$lib/stores';
+	import { peers } from '$lib/stores';
 	import { onMount } from 'svelte';
 	import Hbox from './Hbox.svelte';
 	import Select from './Select.svelte';
 
 	export let stream: MediaStream | undefined;
 
-	let cameraId: string;
+	let peerSdp: string;
 
 	onMount(function () {
 		loadCameras();
@@ -15,20 +15,14 @@
 </script>
 
 <Hbox>
-	<Select bind:value={cameraId} placeholder="Select a camera">
-		{#each $cameras as camera (camera.deviceId)}
-			<option value={camera.deviceId}>{camera.label}</option>
+	<Select bind:value={peerSdp} placeholder="Select a peer">
+		{#each $peers as peer (peer.sdp)}
+			<option value={peer.sdp}>{peer.name}</option>
 		{/each}
 	</Select>
 
 	<button
 		on:click={async () => {
-			if (stream) {
-				stopStream(stream);
-				stream = undefined;
-			} else {
-				stream = await openStream(cameraId, 720, 405);
-			}
 		}}>{stream ? 'Stop' : 'Start'}</button
 	>
 </Hbox>

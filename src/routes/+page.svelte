@@ -5,11 +5,16 @@
 	import { peers } from '$lib/stores';
 	import Camera from '$lib/components/Camera.svelte';
 	import Video from '$lib/components/Video.svelte';
+	import Hbox from '$lib/components/Hbox.svelte';
+	import Vbox from '$lib/components/Vbox.svelte';
+	import Remote from '$lib/components/Remote.svelte';
 
 	let name: string;
 	let socket: WebSocket | undefined;
 	let updateTimer: ReturnType<typeof setTimeout> | undefined;
 	let nameInput: HTMLInputElement | undefined;
+	let localStream: MediaStream | undefined;
+	let remoteStream: MediaStream | undefined;
 
 	$: {
 		clearTimeout(updateTimer);
@@ -46,21 +51,31 @@
 			ws.close();
 		};
 	});
-
-	let stream: MediaStream | undefined;
 </script>
 
 <main>
 	<h1>GameRoom</h1>
-	<input bind:this={nameInput} bind:value={name} placeholder="Name" />
-	<Camera videoSize={{ width: 400, height: 225 }} bind:stream />
-	<Video {stream} size={{ width: 400, height: 225 }} />
+	<Vbox>
+		<Hbox>
+			<input bind:this={nameInput} bind:value={name} placeholder="Name" />
+		</Hbox>
+		<Hbox>
+			<Vbox>
+				<Camera bind:stream={localStream} />
+				<Video stream={localStream} />
+			</Vbox>
+			<Vbox>
+				<Remote bind:stream={remoteStream} />
+				<Video stream={remoteStream} />
+			</Vbox>
+		</Hbox>
+	</Vbox>
 </main>
 
 <style>
 	main {
 		margin: 4rem auto;
-		width: 400px;
+		max-width: 600px;
 		padding: 1rem;
 		display: flex;
 		flex-direction: column;
