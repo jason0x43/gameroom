@@ -2,28 +2,51 @@ import url from 'url';
 import { WebSocketServer } from 'ws';
 
 /** @typedef {import('http').Server} HttpServer */
+/** @typedef {{ name: string }} Connection */
+/** @typedef {{ type: string, value: unknown }} Message */
 
 /**
- * @param {HttpServer} server
+ * @param {HttpServer} httpServer
  * @param {string} path
  */
-export function createSignalServer(server, path) {
-	const ws = new WebSocketServer({ noServer: true });
+export function createSignalServer(httpServer, path) {
+	const server = new WebSocketServer({ noServer: true });
+	/** @type {Map<WebSocket, Connection>} */
+	const connections = new Map();
 
-	server.on('upgrade', function (request, socket, head) {
+	/** @param {Message} msg */
+	function handleMessage(msg, socket) {
+		if (msg.type === 'name') {
+			const con = connections.get(socket);
+			con.name = msg.value;
+			console.log(`Set name to ${msg.value}`);
+		}
+	}
+
+	httpServer.on('upgrade', function (request, socket, head) {
 		const { url } = request;
 		if (url === path) {
-			ws.handleUpgrade(request, socket, head, function (skt) {
-				ws.emit('connection', skt);
+			server.handleUpgrade(request, socket, head, function (ws) {
+				server.emit('connection', ws);
 			});
 		}
 	});
 
-	ws.on('connection', function () {
-		console.log('connected!');
+	server.on('connection', function (socket) {
+		console.log('Client connected');
+		connections.set(socket, { name: '' });
+
+		socket.on('message', function (message) {
+			try {
+				const msg = JSON.parse(`${message}`);
+				handleMessage(msg, socket);
+			} catch (error) {
+				console.warn(`Error parsing message: ${error}`);
+			}
+		});
 	});
 
-	return ws;
+	return server;
 }
 
 if (import.meta.url === `${url.pathToFileURL(process.argv[1])}`) {

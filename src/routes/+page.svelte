@@ -1,16 +1,63 @@
 <script type="ts">
+	import '../app.css';
 	import { onMount } from 'svelte';
+	import { isPeerMessage } from '$lib/types';
+	import { peers } from '$lib/stores';
+
+	let name: string;
+	let socket: WebSocket | undefined;
+	let updateTimer: ReturnType<typeof setTimeout> | undefined;
+	let nameInput: HTMLInputElement | undefined;
+
+	$: {
+		clearTimeout(updateTimer);
+		updateTimer = setTimeout(function () {
+			socket?.send(JSON.stringify({ type: 'name', value: name }));
+			nameInput?.blur();
+		}, 1000);
+	}
 
 	onMount(function () {
-		const loc = new URL(`${window.location}`);
-		loc.protocol = 'ws:';
-		loc.pathname = '/ss';
+		const loc = `ws://${window.location.host}/ss`;
 		const ws = new WebSocket(loc);
+
 		ws.onopen = function () {
-			console.log('opened!');
+			socket = ws;
+		};
+
+		ws.onmessage = function (event) {
+			const msg = JSON.parse(event.data);
+			if (isPeerMessage(msg)) {
+				$peers = [...$peers, msg.value];
+			}
+		};
+
+		ws.onerror = function (error) {
+			console.warn('socket error:', error);
+		};
+
+		ws.onclose = function () {
+			socket = undefined;
+		};
+
+		return () => {
+			ws.close();
 		};
 	});
 </script>
 
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://kit.svelte.dev">kit.svelte.dev</a> to read the documentation</p>
+<main>
+	<h1>GameRoom</h1>
+	<input bind:this={nameInput} bind:value={name} placeholder="Name" />
+</main>
+
+<style>
+	main {
+		margin: 4rem auto;
+		width: 600px;
+		padding: 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+</style>
