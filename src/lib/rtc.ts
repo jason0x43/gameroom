@@ -158,42 +158,7 @@ export class WebRTCClient {
 	 * Invite a peer to connect.
 	 */
 	async invite(peerId: string): Promise<void> {
-		if (!this.#stream) {
-			throw new Error('Stream must be open to issue an invitation');
-		}
-
-		if (this.#peerConnections.has(peerId)) {
-			throw new Error(`Already connected to ${peerId}`);
-		}
-
-		const peerConnection = new RTCPeerConnection({
-			iceServers: [],
-			iceTransportPolicy: 'all',
-			iceCandidatePoolSize: 0
-		});
-		this.#peerConnections.set(peerId, peerConnection);
-
-		peerConnection.onicecandidate = (event) => {
-			const candidate = event.candidate;
-			if (candidate) {
-				this.#send({
-					type: 'candidate',
-					data: {
-						id: this.#id,
-						target: peerId,
-						candidate
-					}
-				});
-			}
-		};
-
-		peerConnection.ontrack = (event) => {
-			this.#emit('streamopened', event.streams[0]);
-		};
-
-		for (const track of this.#stream.getTracks()) {
-			peerConnection.addTrack(track, this.#stream);
-		}
+		const peerConnection = this.#createPeerConnection(peerId);
 
 		const offer = await peerConnection.createOffer({
 			offerToReceiveAudio: true,
@@ -220,44 +185,14 @@ export class WebRTCClient {
 	 * Accept a peer invite
 	 */
 	async accept(offer: Offer): Promise<void> {
-		if (!this.#stream) {
-			throw new Error('Stream must be open to accept an invitation');
-		}
-
-		if (this.#peerConnections.has(offer.source)) {
-			throw new Error(`Already connected to ${offer.source}`);
-		}
-
-		const peerConnection = new RTCPeerConnection({
-			iceServers: [],
-			iceTransportPolicy: 'all',
-			iceCandidatePoolSize: 0
-		});
-		this.#peerConnections.set(offer.source, peerConnection);
-
-		peerConnection.onicecandidate = (event) => {
-			console.log('candidate:', event.candidate);
-			const candidate = event.candidate;
-			if (candidate) {
-				this.#send({
-					type: 'candidate',
-					data: {
-						id: this.#id,
-						target: offer.source,
-						candidate,
-					}
-				});
-			}
-		};
+		const peerId = offer.source;
+		const peerConnection = this.#createPeerConnection(peerId);
 
 		peerConnection.setRemoteDescription({
 			type: 'offer',
 			sdp: offer.sdp
 		});
-
-		for (const track of this.#stream.getTracks()) {
-			peerConnection.addTrack(track, this.#stream);
-		}
+		console.debug(`Set remote description to ${offer.sdp}`);
 
 		const answer = await peerConnection.createAnswer({
 			offerToReceiveAudio: true,
@@ -269,6 +204,7 @@ export class WebRTCClient {
 		}
 
 		await peerConnection.setLocalDescription(answer);
+		console.debug('Set local description to', answer);
 
 		this.#send({
 			type: 'answer',
@@ -278,11 +214,13 @@ export class WebRTCClient {
 				sdp: answer.sdp
 			}
 		});
+		console.debug('Sent answer to offeror');
 
 		const candidates = this.#peerIceCandidates.get(offer.source);
 		for (const candidate of candidates ?? []) {
 			try {
 				await peerConnection.addIceCandidate(candidate);
+				console.debug('Adding candidate', candidate, 'to peer connection');
 			} catch (error) {
 				console.warn(`Error adding ICE candidate ${candidate}: ${error}`);
 			}
@@ -313,13 +251,13 @@ export class WebRTCClient {
 	 * Add an ICE candidate for a specific peer.
 	 */
 	async #addIceCandidate(candidate: Candidate) {
+		console.debug('Received candidate:', candidate);
 		const candidates = this.#peerIceCandidates.get(candidate.id) ?? [];
 		this.#peerIceCandidates.set(candidate.id, candidates);
 		candidates.push(candidate.candidate);
 
-		const peerConnection = this.#peerConnections.get(candidate.id);
 		try {
-			peerConnection?.addIceCandidate(candidate.candidate);
+			this.#peerConnections.get(candidate.id)?.addIceCandidate(candidate.candidate);
 		} catch (error) {
 			console.warn(`Error adding ICE candidate ${candidate}: ${error}`);
 		}
@@ -341,6 +279,54 @@ export class WebRTCClient {
 	}
 
 	/**
+	 * Create a new peer connection
+	 */
+	#createPeerConnection(peerId: string) {
+		if (!this.#stream) {
+			throw new Error('Stream must be open to create a peer connection');
+		}
+
+		if (this.#peerConnections.has(peerId)) {
+			throw new Error(`Already connected to ${peerId}`);
+		}
+
+		const peerConnection = new RTCPeerConnection({
+			iceServers: [],
+			iceTransportPolicy: 'all',
+			iceCandidatePoolSize: 0
+		});
+
+		this.#peerConnections.set(peerId, peerConnection);
+		console.debug(`Added peer connection for ${peerId}`);
+
+		peerConnection.onicecandidate = (event) => {
+			const candidate = event.candidate;
+			if (candidate) {
+				this.#send({
+					type: 'candidate',
+					data: {
+						id: this.#id,
+						target: peerId,
+						candidate
+					}
+				});
+			}
+		};
+
+		peerConnection.ontrack = (event) => {
+			console.debug('Received remote stream');
+			this.#emit('streamopened', event.streams[0]);
+		};
+
+		for (const track of this.#stream.getTracks()) {
+			peerConnection.addTrack(track, this.#stream);
+			console.debug('Added local stream track to peer connection');
+		}
+
+		return peerConnection;
+	}
+
+	/**
 	 * Emit an RTC event.
 	 */
 	#emit<T extends NonDataRtcEventName>(eventName: T): void;
@@ -354,7 +340,7 @@ export class WebRTCClient {
 	 */
 	#handleMessage(event: MessageEvent): void {
 		const msg = JSON.parse(event.data) as Message;
-		console.log(`Received [${msg.type}]`, msg);
+		console.debug(`Received [${msg.type}]`, msg);
 
 		switch (msg.type) {
 			case 'peer':
@@ -391,6 +377,6 @@ export class WebRTCClient {
 			throw new Error('Client is not connected');
 		}
 		this.#socket.send(JSON.stringify(message));
-		console.log(`Sent [${message.type}]`);
+		console.debug(`Sent [${message.type}]`);
 	}
 }
