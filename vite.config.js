@@ -1,5 +1,5 @@
 import { sveltekit } from '@sveltejs/kit/vite';
-import { createSignalServer } from './server.js';
+import { createSignalServer } from './src/server.js';
 import { readFileSync } from 'fs';
 
 /** @type {import('vite').Plugin} */

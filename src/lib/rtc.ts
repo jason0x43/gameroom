@@ -132,7 +132,7 @@ export class WebRTCClient {
 	}
 
 	/**
-	 * Open a camera stream
+	 * Open a camera stream.
 	 */
 	async openStream(cameraId?: string): Promise<MediaStream> {
 		this.#stream = await navigator.mediaDevices.getUserMedia({
@@ -147,7 +147,7 @@ export class WebRTCClient {
 	}
 
 	/**
-	 * Close the currently open camera stream
+	 * Close the currently open camera stream.
 	 */
 	closeStream(): void {
 		this.#stream?.getTracks().forEach((track) => track.stop());
@@ -155,9 +155,9 @@ export class WebRTCClient {
 	}
 
 	/**
-	 * Invite a peer to connect
+	 * Invite a peer to connect.
 	 */
-	async invite(peerId: string) {
+	async invite(peerId: string): Promise<void> {
 		if (!this.#stream) {
 			throw new Error('Stream must be open to issue an invitation');
 		}
@@ -219,7 +219,7 @@ export class WebRTCClient {
 	/**
 	 * Accept a peer invite
 	 */
-	async accept(offer: Offer) {
+	async accept(offer: Offer): Promise<void> {
 		if (!this.#stream) {
 			throw new Error('Stream must be open to accept an invitation');
 		}
@@ -290,9 +290,9 @@ export class WebRTCClient {
 	}
 
 	/**
-	 * Disconnect from a peer
+	 * Disconnect from a peer.
 	 */
-	disconnect(peerId: string) {
+	disconnect(peerId: string): void {
 		const peerConnection = this.#peerConnections.get(peerId);
 		if (peerConnection) {
 			peerConnection.close();
@@ -302,7 +302,7 @@ export class WebRTCClient {
 	}
 
 	/**
-	 * Get the available cameras
+	 * Get the available cameras.
 	 */
 	async getCameras(): Promise<MediaDeviceInfo[]> {
 		const devices = await navigator.mediaDevices.enumerateDevices();
@@ -310,7 +310,7 @@ export class WebRTCClient {
 	}
 
 	/**
-	 * Add an ICE candidate for a specific peer
+	 * Add an ICE candidate for a specific peer.
 	 */
 	async #addIceCandidate(candidate: Candidate) {
 		const candidates = this.#peerIceCandidates.get(candidate.id) ?? [];
@@ -326,7 +326,7 @@ export class WebRTCClient {
 	}
 
 	/**
-	 * Connect to a peer that has answered an offer
+	 * Connect to a peer that has answered an offer.
 	 */
 	#connectToPeer(answer: Answer) {
 		const peerConnection = this.#peerConnections.get(answer.target);
@@ -341,7 +341,7 @@ export class WebRTCClient {
 	}
 
 	/**
-	 * Emit an RTC event
+	 * Emit an RTC event.
 	 */
 	#emit<T extends NonDataRtcEventName>(eventName: T): void;
 	#emit<T extends DataRtcEventName>(eventName: T, data: RtcEvent[T]): void;
@@ -350,11 +350,11 @@ export class WebRTCClient {
 	}
 
 	/**
-	 * Handle an incoming signal server message
+	 * Handle an incoming signal server message.
 	 */
 	#handleMessage(event: MessageEvent): void {
 		const msg = JSON.parse(event.data) as Message;
-		console.log(`Received [${msg.type}]`);
+		console.log(`Received [${msg.type}]`, msg);
 
 		switch (msg.type) {
 			case 'peer':

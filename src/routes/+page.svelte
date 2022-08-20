@@ -159,6 +159,8 @@
 	.status {
 		font-style: italic;
 		color: #a00;
+		/* to account for italic slant */
+		padding-right: 0.25em;
 	}
 
 	.connected {
