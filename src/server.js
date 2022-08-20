@@ -44,15 +44,24 @@ export function createSignalServer(httpServer, path) {
 	 * @param {WebSocket} socket - client socket
 	 * @param {Peer} client
 	 * @param {Peer} peer
+	 * @param {boolean} [remove]
 	 */
-	function notifyClient(socket, client, peer) {
-		console.log(`Telling ${client.name} about peer ${peer.name}`);
-		socket.send(
-			JSON.stringify({
-				type: 'peer',
-				data: peer
-			})
-		);
+	function notifyClient(socket, client, peer, remove) {
+		if (remove) {
+			console.log(`Telling ${client.name} that peer ${peer.name} disconnected`);
+		} else {
+			console.log(`Telling ${client.name} about peer ${peer.name}`);
+		}
+
+		/** @type {PeerMessage} */
+		const msg = {
+			type: 'peer',
+			data: {
+				...peer,
+				remove
+			}
+		};
+		socket.send(JSON.stringify(msg));
 	}
 
 	/**
@@ -127,22 +136,13 @@ export function createSignalServer(httpServer, path) {
 		// When the client connection closes, remove the client's peer info
 		socket.on('close', () => {
 			console.log('Client disconnected');
-			const peer = connections.get(socket);
-			if (peer) {
+			const client = connections.get(socket);
+			if (client) {
 				connections.delete(socket);
 
-				// Notify other peers that a peer has closed
-				for (const conn of connections.keys()) {
-					/** @type {PeerMessage} */
-					const msg = {
-						type: 'peer',
-						data: {
-							id: peer.id,
-							remove: true
-						}
-					};
-					console.log(`Telling peer that ${peer.id} disconnected`);
-					conn.send(JSON.stringify(msg));
+				// Notify peers that a client has closed
+				for (const [conn, peer] of connections.entries()) {
+					notifyClient(conn, peer, client, true);
 				}
 			}
 		});
