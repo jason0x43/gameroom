@@ -1,11 +1,14 @@
 <script type="ts">
 	export let value: string;
+	export let options: { label?: string; value: string }[];
 	export let placeholder: string | undefined = undefined;
 </script>
 
 <div class="select">
-	<select bind:value on:change {...$$restProps} {placeholder}>
-		<slot />
+	<select bind:value {placeholder} {...$$restProps}>
+		{#each options as option (option.value)}
+			<option value={option.value}>{option.label || option.value}</option>
+		{/each}
 	</select>
 	{#if placeholder && !value}
 		<span class="placeholder">{placeholder}</span>

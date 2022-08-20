@@ -1,20 +1,43 @@
 export type Peer = {
-	name: string;
-	sdp: string;
+	id: string;
+	remove?: boolean;
+	name?: string;
 };
 
-export type Message<T = unknown> = {
-	type: string;
-	value: T;
-};
-
-export type PeerMessage = Message<{
-	name: string;
-	sdp: string;
-}> & {
+export type PeerMessage = {
 	type: 'peer';
+	data: Peer;
 };
 
-export function isPeerMessage(msg: Message): msg is PeerMessage {
-	return msg.type === 'peer';
-}
+export type Candidate = {
+		id: string;
+		target: string;
+		candidate: RTCIceCandidateInit;
+};
+
+export type CandidateMessage = {
+	type: 'candidate';
+	data: Candidate;
+};
+
+export type Offer = {
+		/** the offeror */
+		source: string;
+		/** the target of the offer */
+		target: string;
+		sdp: string;
+};
+
+export type OfferMessage = {
+	type: 'offer';
+	data: Offer;
+};
+
+export type Answer = Offer;
+
+export type AnswerMessage = {
+	type: 'answer';
+	data: Answer;
+};
+
+export type Message = PeerMessage | CandidateMessage | OfferMessage | AnswerMessage;

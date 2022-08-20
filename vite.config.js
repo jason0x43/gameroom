@@ -1,5 +1,6 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import { createSignalServer } from './server.js';
+import { readFileSync } from 'fs';
 
 /** @type {import('vite').Plugin} */
 const signalServer = {
@@ -11,7 +12,13 @@ const signalServer = {
 
 /** @type {import('vite').UserConfig} */
 const config = {
-	plugins: [sveltekit(), signalServer]
+	plugins: [sveltekit(), signalServer],
+	server: {
+		https: {
+			key: readFileSync('jasons-mbp.key.pem'),
+			cert: readFileSync('jasons-mbp.crt.pem'),
+		}
+	}
 };
 
 export default config;

@@ -2,8 +2,10 @@ import url from 'url';
 import { WebSocketServer } from 'ws';
 
 /** @typedef {import('http').Server} HttpServer */
-/** @typedef {{ name: string }} Connection */
-/** @typedef {{ type: string, value: unknown }} Message */
+/** @typedef {import('./src/lib/types').Peer} Peer */
+/** @typedef {import('./src/lib/types').Message} Message */
+/** @typedef {import('./src/lib/types').PeerMessage} PeerMessage */
+/** @typedef {import('./src/lib/types').OfferMessage} OfferMessage */
 
 /**
  * @param {HttpServer} httpServer
@@ -11,15 +13,53 @@ import { WebSocketServer } from 'ws';
  */
 export function createSignalServer(httpServer, path) {
 	const server = new WebSocketServer({ noServer: true });
-	/** @type {Map<WebSocket, Connection>} */
+	/**
+	 * A map of sockets to peer info
+	 * @type {Map<WebSocket, Peer | null>}
+	 */
 	const connections = new Map();
+	/**
+	 * A map of peer IDs to sockets
+	 * @type {Map<string, WebSocket>}
+	 */
+	const peers = new Map();
 
 	/** @param {Message} msg */
 	function handleMessage(msg, socket) {
-		if (msg.type === 'name') {
-			const con = connections.get(socket);
-			con.name = msg.value;
-			console.log(`Set name to ${msg.value}`);
+		console.log(`Received [${msg.type}]`);
+		console.log(`${connections.size} active peers`);
+
+		switch (msg.type) {
+			case 'peer':
+				connections.set(socket, msg.data);
+				peers.set(msg.data.id, socket);
+
+				// Announce the new/updated peer
+				for (const skt of connections.keys()) {
+					if (skt !== socket) {
+						console.log(`Telling client about peer ${msg.data.id}`);
+						skt.send(
+							JSON.stringify({
+								type: 'peer',
+								data: msg.data
+							})
+						);
+					}
+				}
+				break;
+
+			case 'offer':
+				peers.get(msg.data.target)?.send(JSON.stringify(msg));
+				break;
+
+			case 'answer':
+				peers.get(msg.data.source)?.send(JSON.stringify(msg));
+				break;
+
+			case 'candidate': {
+				peers.get(msg.data.target)?.send(JSON.stringify(msg));
+				break;
+			}
 		}
 	}
 
@@ -32,11 +72,12 @@ export function createSignalServer(httpServer, path) {
 		}
 	});
 
-	server.on('connection', function (socket) {
-		console.log('Client connected');
-		connections.set(socket, { name: '' });
+	server.on('connection', (socket) => {
+		console.log(`Client connected with ${connections.size} active peers`);
+		connections.set(socket, null);
 
-		socket.on('message', function (message) {
+		// Handle an incoming message from the client
+		socket.on('message', (message) => {
 			try {
 				const msg = JSON.parse(`${message}`);
 				handleMessage(msg, socket);
@@ -44,6 +85,41 @@ export function createSignalServer(httpServer, path) {
 				console.warn(`Error parsing message: ${error}`);
 			}
 		});
+
+		// When the client connection closes, remove the client's peer info
+		socket.on('close', () => {
+			console.log('Socket closed');
+			const peer = connections.get(socket);
+			connections.delete(socket);
+			for (const entry of peers.entries()) {
+				if (entry[1] === socket) {
+					peers.delete(entry[0]);
+					break;
+				}
+			}
+
+			if (peer) {
+				for (const conn of connections.keys()) {
+					/** @type {PeerMessage} */
+					const msg = {
+						type: 'peer',
+						data: {
+							id: peer.id,
+							remove: true
+						}
+					};
+					conn.send(JSON.stringify(msg));
+				}
+			}
+		});
+
+		// Tell the client about any known peers
+		for (const peer of connections.values()) {
+			if (peer) {
+				console.log(`Telling new client about peer ${peer.id}`);
+				socket.send(JSON.stringify({ type: 'peer', data: peer }));
+			}
+		}
 	});
 
 	return server;

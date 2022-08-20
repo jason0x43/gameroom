@@ -1,13 +1,11 @@
 <script type="ts">
-	import { loadCameras, openStream, stopStream } from '$lib/rtc';
-	import { cameras } from '$lib/stores';
 	import { onMount } from 'svelte';
 	import Hbox from './Hbox.svelte';
 	import Select from './Select.svelte';
 
-	export let stream: MediaStream | undefined;
+	export let stream: MediaStream | undefined = undefined;
 
-	let cameraId: string;
+	let cameraId: string = '';
 
 	onMount(function () {
 		loadCameras();
@@ -15,11 +13,14 @@
 </script>
 
 <Hbox>
-	<Select bind:value={cameraId} placeholder="Select a camera">
-		{#each $cameras as camera (camera.deviceId)}
-			<option value={camera.deviceId}>{camera.label}</option>
-		{/each}
-	</Select>
+	<Select
+		bind:value={cameraId}
+		placeholder="Select a camera"
+		options={$cameras.map((camera) => ({
+			label: camera.label,
+			value: camera.deviceId
+		}))}
+	/>
 
 	<button
 		on:click={async () => {
