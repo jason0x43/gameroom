@@ -1,13 +1,25 @@
-import type { Answer, Candidate, Message, Offer, Peer } from './types';
+import type {
+	Answer,
+	Candidate,
+	Message,
+	Offer,
+	Peer,
+	PeerMessage
+} from './types';
 import { v4 as uuid } from 'uuid';
 
 type Handler<T = unknown> = (event: T) => void;
 
 type RtcEvent = {
-	peerschanged: undefined;
+	peeradded: Peer;
+	peerupdated: Peer;
+	peerremoved: Peer;
+	peerconnected: {
+		stream: MediaStream;
+		peer: Peer;
+	};
 	connected: undefined;
 	disconnected: undefined;
-	streamopened: MediaStream;
 	offer: Offer;
 	error: Error;
 };
@@ -29,48 +41,16 @@ export class WebRTCClient {
 	#peerIceCandidates = new Map<string, RTCIceCandidateInit[]>();
 	#peers = new Map<string, Peer>();
 	#listeners = new Map<RtcEventName, Set<Handler>>();
-	#connected: Promise<void>;
 	#id: string;
 	#name: string | undefined;
+	#userId: string;
+	#closed = false;
+	#reconnectTimer: ReturnType<typeof setTimeout> | undefined;
 
-	constructor() {
-		const protocol = window.location.protocol.startsWith('https') ? 'wss' : 'ws';
-		const loc = `${protocol}://${window.location.host}/ss`;
-		const socket = new WebSocket(loc);
-		this.#socket = socket;
-
-		this.#connected = new Promise((resolve) => {
-			socket.onopen = () => {
-				resolve();
-			};
-		});
-
-		socket.onopen = () => {
-			this.#emit('connected');
-		};
-
-		socket.onmessage = (event) => {
-			this.#handleMessage(event);
-		};
-
-		socket.onerror = (event) => {
-			this.#emit('error', new Error(`${event}`));
-			console.warn('socket error:', event);
-		};
-
-		socket.onclose = () => {
-			this.#emit('disconnected');
-			this.#socket = undefined;
-		};
-
+	constructor(userId: string) {
+		this.#userId = userId;
 		this.#id = uuid();
-	}
-
-	/**
-	 * A promise the resolves when the client has connected to the signal server.
-	 */
-	get connected(): Promise<void> {
-		return this.#connected;
+		this.#connect();
 	}
 
 	/**
@@ -96,13 +76,6 @@ export class WebRTCClient {
 	 */
 	set name(value: string) {
 		this.#name = value;
-		this.#send({
-			type: 'peer',
-			data: {
-				id: this.#id,
-				name: value
-			}
-		});
 	}
 
 	get peers(): Peer[] {
@@ -112,7 +85,10 @@ export class WebRTCClient {
 	/**
 	 * Listen for RTC events
 	 */
-	on<T extends RtcEventName, H extends Handler<RtcEvent[T]>>(eventName: T, handler: H) {
+	on<T extends RtcEventName, H extends Handler<RtcEvent[T]>>(
+		eventName: T,
+		handler: H
+	) {
 		const handlers = (this.#listeners.get(eventName) as Set<H>) ?? new Set<H>();
 		this.#listeners.set(eventName, handlers as Set<Handler>);
 		handlers.add(handler);
@@ -125,6 +101,8 @@ export class WebRTCClient {
 	 * Close this client
 	 */
 	close(): void {
+		clearTimeout(this.#reconnectTimer);
+		this.#closed = true;
 		this.#socket?.close();
 		this.#listeners.clear();
 		this.#peers.clear();
@@ -257,10 +235,56 @@ export class WebRTCClient {
 		candidates.push(candidate.candidate);
 
 		try {
-			this.#peerConnections.get(candidate.id)?.addIceCandidate(candidate.candidate);
+			this.#peerConnections
+				.get(candidate.id)
+				?.addIceCandidate(candidate.candidate);
 		} catch (error) {
 			console.warn(`Error adding ICE candidate ${candidate}: ${error}`);
 		}
+	}
+
+	/**
+	 * Connect to the signal server
+	 */
+	#connect() {
+		const protocol = window.location.protocol.startsWith('https')
+			? 'wss'
+			: 'ws';
+		const loc = `${protocol}://${window.location.host}/ss`;
+
+		const socket = new WebSocket(loc);
+		this.#socket = socket;
+
+		socket.onopen = () => {
+			console.log('Connected to signal server');
+			this.#emit('connected');
+			socket.send(JSON.stringify({
+				type: 'peer',
+				data: {
+					id: this.#id,
+					userId: this.#userId
+				}
+			}));
+		};
+
+		socket.onmessage = (event) => {
+			this.#handleMessage(event);
+		};
+
+		socket.onerror = (event) => {
+			this.#emit('error', new Error(`${event}`));
+			console.warn('Socket error:', event);
+		};
+
+		socket.onclose = () => {
+			this.#socket = undefined;
+			this.#emit('disconnected');
+			console.debug('Socket closed');
+
+			if (!this.#closed) {
+				this.#reconnect();
+			}
+		};
 	}
 
 	/**
@@ -290,6 +314,11 @@ export class WebRTCClient {
 			throw new Error(`Already connected to ${peerId}`);
 		}
 
+		const peer = this.#peers.get(peerId);
+		if (!peer) {
+			throw new Error(`Unknown peer ${peerId}`);
+		}
+
 		const peerConnection = new RTCPeerConnection({
 			iceServers: [],
 			iceTransportPolicy: 'all',
@@ -315,7 +344,10 @@ export class WebRTCClient {
 
 		peerConnection.ontrack = (event) => {
 			console.debug('Received remote stream');
-			this.#emit('streamopened', event.streams[0]);
+			this.#emit('peerconnected', {
+				stream: event.streams[0],
+				peer
+			});
 		};
 
 		for (const track of this.#stream.getTracks()) {
@@ -346,10 +378,14 @@ export class WebRTCClient {
 			case 'peer':
 				if (msg.data.remove) {
 					this.#peers.delete(msg.data.id);
+					this.#emit('peerremoved', msg.data);
 				} else {
+					const event = this.#peers.has(msg.data.id)
+						? 'peerupdated'
+						: 'peeradded';
 					this.#peers.set(msg.data.id, msg.data);
+					this.#emit(event, msg.data);
 				}
-				this.#emit('peerschanged');
 				break;
 
 			case 'offer': {
@@ -370,6 +406,21 @@ export class WebRTCClient {
 	}
 
 	/**
+	 * Attempt to reconnect to the signal server
+	 */
+	#reconnect(): void {
+		clearTimeout(this.#reconnectTimer);
+		this.#reconnectTimer = setTimeout(() => {
+			if (this.#socket) {
+				return;
+			}
+
+			console.debug('Attempting reconnect...');
+			this.#connect();
+		}, 1000);
+	}
+
+	/**
 	 * Send a message to the signal server
 	 */
 	#send(message: Message): void {
@@ -377,6 +428,5 @@ export class WebRTCClient {
 			throw new Error('Client is not connected');
 		}
 		this.#socket.send(JSON.stringify(message));
-		console.debug(`Sent [${message.type}]`);
 	}
 }

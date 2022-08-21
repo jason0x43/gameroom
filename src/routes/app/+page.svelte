@@ -1,34 +1,34 @@
 <script type="ts">
-	import '../app.css';
 	import { onMount } from 'svelte';
 	import Video from '$lib/components/Video.svelte';
 	import Hbox from '$lib/components/Hbox.svelte';
 	import Vbox from '$lib/components/Vbox.svelte';
 	import Select from '$lib/components/Select.svelte';
 	import { WebRTCClient } from '$lib/rtc';
-	import { browser } from '$app/env';
 	import type { Offer, Peer } from '$lib/types';
+	import type { PageData, Errors } from './$types';
 
-	let name: string;
+	export let data: PageData;
+	export let errors: Errors;
+
+	$: {
+		if (errors) {
+			console.warn(errors);
+		}
+	}
+
+	const user = data.user;
+
 	let peer: string = '';
 	let peers: Peer[] = [];
-	let updateTimer: ReturnType<typeof setTimeout> | undefined;
 	let localStream: MediaStream | undefined;
-	let remoteStream: MediaStream | undefined;
+	let connectedPeers: {
+		[peerId: string]: { stream: MediaStream; name: string };
+	} = {};
 	let client: WebRTCClient;
 	let status = 'disconnected';
 	let offer: Offer | undefined;
 	let accepted: Offer | undefined;
-
-	$: {
-		if (browser) {
-			clearTimeout(updateTimer);
-			updateTimer = setTimeout(function () {
-				client.name = name;
-				localStorage.setItem('gameroom:name', name ?? '');
-			}, 1000);
-		}
-	}
 
 	function getPeerName(offer: Offer) {
 		const p = peers.find((peer) => peer.id === offer.source);
@@ -36,7 +36,7 @@
 	}
 
 	onMount(function () {
-		client = new WebRTCClient();
+		client = new WebRTCClient(user.id);
 
 		client.on('connected', () => {
 			status = 'connected';
@@ -46,22 +46,36 @@
 			status = 'disconnected';
 		});
 
-		client.on('streamopened', (stream) => {
-			remoteStream = stream;
+		client.on('peerconnected', ({ stream, peer }) => {
+			connectedPeers = {
+				...connectedPeers,
+				[peer.id]: { stream, name: peer.name ?? peer.id }
+			};
 		});
 
-		client.on('peerschanged', () => {
-			peers = client.peers;
+		client.on('peeradded', (peer) => {
+			peers = [...peers, peer];
+		});
+
+		client.on('peerupdated', (peer) => {
+			if (connectedPeers[peer.id]) {
+				connectedPeers = {
+					...connectedPeers,
+					[peer.id]: { ...connectedPeers[peer.id], name: peer.name ?? peer.id }
+				};
+			}
+		});
+
+		client.on('peerremoved', (peer) => {
+			const index = peers.findIndex(({ id }) => id === peer.id);
+			if (index > -1) {
+				peers = [...peers.slice(0, index), ...peers.slice(index + 1)];
+			}
 		});
 
 		client.on('offer', (ofr) => {
 			offer = ofr;
 		});
-
-		const playerName = localStorage.getItem('gameroom:name');
-		if (playerName) {
-			name = playerName;
-		}
 
 		return () => {
 			client.close();
@@ -69,19 +83,13 @@
 	});
 </script>
 
-<header>
-	<Hbox between>
-		<h1>GameRoom</h1>
-	</Hbox>
-</header>
-
 <main>
 	<Vbox>
+		<Video name={user.username} stream={localStream} />
 		<Hbox>
-			<input bind:value={name} placeholder="Your name" />
 			<Select
 				bind:value={peer}
-				placeholder="Select a peer"
+				placeholder="Select a friend"
 				options={peers.map((peer) => ({
 					label: peer.name,
 					value: peer.id
@@ -97,21 +105,18 @@
 		</Hbox>
 		<Hbox>
 			<Vbox>
-				<Video stream={localStream} />
-			</Vbox>
-			<Vbox>
-				<Video stream={remoteStream} />
+				{#each Object.values(connectedPeers) as { stream, name }}
+					<Video {name} {stream} />
+				{/each}
 			</Vbox>
 		</Hbox>
 	</Vbox>
-</main>
-
-<footer>
 	<Hbox between>
-		<p>Client ID: {client?.id}</p>
-		<span class="status" class:connected={status === 'connected'}>{status}</span>
+		<p class="dim">Client ID: {client?.id}</p>
+		<span class="status" class:connected={status === 'connected'}>{status}</span
+		>
 	</Hbox>
-</footer>
+</main>
 
 {#if offer && accepted !== offer}
 	<div class="modal">
@@ -133,26 +138,17 @@
 {/if}
 
 <style>
-	main,
-	header,
-	footer {
+	main {
 		margin: 0 auto;
 		padding: 0 1rem;
-		max-width: 600px;
-	}
-
-	header {
-		margin-top: 4rem;
-	}
-
-	main {
+		max-width: 400px;
 		padding: 1rem;
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
 	}
 
-	footer {
+	.dim {
 		color: #aaa;
 	}
 
@@ -182,11 +178,5 @@
 	.modal-content {
 		background: white;
 		padding: 1rem;
-	}
-
-	@media (max-width: 600px) {
-		header {
-			margin-top: 1rem;
-		}
 	}
 </style>

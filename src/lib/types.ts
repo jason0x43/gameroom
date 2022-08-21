@@ -1,7 +1,8 @@
 export type Peer = {
 	id: string;
-	remove?: boolean;
+	userId: string;
 	name?: string;
+	remove?: boolean;
 };
 
 export type PeerMessage = {

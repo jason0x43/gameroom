@@ -9,5 +9,14 @@
 		"skipLibCheck": true,
 		"sourceMap": true,
 		"strict": true
+	},
+	"files": [
+		"./server.js",
+		"./scripts/db.ts"
+	],
+	"ts-node": {
+		"esm": true,
+		"transpileOnly": true,
+		"transpiler": "ts-node/transpilers/swc"
 	}
 }

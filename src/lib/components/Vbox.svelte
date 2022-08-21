@@ -1,9 +1,9 @@
-<div>
+<div class="vbox">
 	<slot />
 </div>
 
 <style>
-	div {
+	.vbox {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;

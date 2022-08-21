@@ -1,14 +1,15 @@
 <script type="ts">
 	export let between = false;
 	export let bottom = false;
+	export let middle = false;
 </script>
 
-<div class:between class:bottom>
+<div class="hbox" class:between class:bottom class:middle>
 	<slot />
 </div>
 
 <style>
-	div {
+	.hbox {
 		display: flex;
 		flex-direction: row;
 		gap: 1rem;
@@ -18,6 +19,10 @@
 
 	.between {
 		justify-content: space-between;
+	}
+
+	.middle {
+		align-items: center;
 	}
 
 	.bottom {

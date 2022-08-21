@@ -1,5 +1,6 @@
 <script type="ts">
 	export let stream: MediaStream | undefined = undefined;
+	export let name: string = 'unknown';
 
 	let video: HTMLVideoElement | undefined;
 
@@ -10,14 +11,15 @@
 	}
 </script>
 
-<div>
+<figure>
 	<video bind:this={video} autoplay playsinline>
 		<track kind="captions" />
 	</video>
-</div>
+	<figcaption>{name}</figcaption>
+</figure>
 
 <style>
-	div {
+	figure {
 		border: var(--border-normal);
 		border-radius: var(--border-radius-normal);
 		position: relative;

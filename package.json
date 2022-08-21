@@ -5,19 +5,24 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
-		"preview": "node ./src/server.js",
+		"preview": "node ./server.js",
 		"check": "svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check --plugin-search-dir=. . && eslint .",
-		"format": "prettier --write --plugin-search-dir=. ."
+		"format": "prettier --write --plugin-search-dir=. .",
+		"db": "ts-node scripts/db.ts"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-auto": "next",
 		"@sveltejs/adapter-node": "1.0.0-next.86",
 		"@sveltejs/kit": "next",
+		"@swc/core": "^1.2.241",
+		"@types/bcryptjs": "^2.4.2",
+		"@types/cookie": "^0.5.1",
 		"@types/express": "^4.17.13",
+		"@types/node": "^18.7.8",
 		"@types/uuid": "^8.3.4",
 		"@types/ws": "^8.5.3",
+		"@types/yargs": "^17.0.11",
 		"@typescript-eslint/eslint-plugin": "^5.33.1",
 		"@typescript-eslint/parser": "^5.33.1",
 		"eslint": "^8.22.0",
@@ -25,17 +30,22 @@
 		"eslint-plugin-svelte3": "^4.0.0",
 		"prettier": "^2.7.1",
 		"prettier-plugin-svelte": "^2.7.0",
+		"prisma": "^4.2.1",
 		"svelte": "^3.49.0",
 		"svelte-check": "^2.8.1",
 		"svelte-preprocess": "^4.10.7",
+		"ts-node": "^10.9.1",
 		"tslib": "^2.4.0",
 		"typescript": "^4.7.4",
-		"vite": "3.0.2"
+		"vite": "3.0.2",
+		"yargs": "^17.5.1"
 	},
 	"type": "module",
 	"dependencies": {
+		"@prisma/client": "^4.2.1",
+		"bcryptjs": "^2.4.3",
+		"cookie": "^0.5.0",
 		"express": "^4.18.1",
-		"prisma": "^4.2.1",
 		"uuid": "^8.3.2",
 		"ws": "^8.8.1"
 	}
