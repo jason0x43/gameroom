@@ -1,3 +1,4 @@
 # GameRoom
 
-A fun place to play games with your friends.
+Eventually, a place to play games with friends. Currently, a WebRTC testing
+ground.
