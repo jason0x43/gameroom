@@ -10,10 +10,6 @@
 		"sourceMap": true,
 		"strict": true
 	},
-	"files": [
-		"./server.js",
-		"./scripts/db.ts"
-	],
 	"ts-node": {
 		"esm": true,
 		"transpileOnly": true,
