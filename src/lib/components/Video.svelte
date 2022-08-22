@@ -25,6 +25,8 @@
 		position: relative;
 		aspect-ratio: 16 / 9;
 		flex-grow: 1;
+		overflow: hidden;
+		isolation: isolate;
 	}
 
 	video {
@@ -33,5 +35,17 @@
 		left: 0;
 		width: 100%;
 		height: 100%;
+		object-fit: cover;
+	}
+
+	.video-name {
+		color: white;
+		position: absolute;
+		border: none;
+		background: rgba(0, 0, 0, 0.25);
+		padding: 2px 6px 3px 6px;
+		bottom: -1px;
+		right: -1px;
+		border-top-left-radius: var(--border-radius-normal);
 	}
 </style>
