@@ -12,10 +12,10 @@
 </script>
 
 <figure>
-	<video bind:this={video} autoplay playsinline>
-		<track kind="captions" />
-	</video>
-	<figcaption>{name}</figcaption>
+	<!-- Adding a caption track causes video streams to be solid black on iOS -->
+	<!-- svelte-ignore a11y-media-has-caption -->
+	<video bind:this={video} autoplay playsinline />
+	<figcaption class="video-name">{name}</figcaption>
 </figure>
 
 <style>
