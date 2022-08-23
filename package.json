@@ -11,7 +11,8 @@
 		"lint": "prettier --check --plugin-search-dir=. . && eslint .",
 		"format": "prettier --write --plugin-search-dir=. .",
 		"db": "ts-node scripts/db.ts",
-		"test": "vitest run"
+		"test": "vitest run",
+		"push": "ts-node ./scripts/deploy.ts"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "1.0.0-next.86",

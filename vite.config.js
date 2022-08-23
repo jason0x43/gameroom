@@ -12,13 +12,16 @@ const signalServer = {
 
 /** @type {import('vite').UserConfig} */
 const config = {
-	plugins: [sveltekit(), signalServer],
-	server: {
+	plugins: [sveltekit(), signalServer]
+};
+
+if (process.env.NODE_ENV !== 'production') {
+	config.server = {
 		https: {
 			key: readFileSync('jasons-mbp.key.pem'),
-			cert: readFileSync('jasons-mbp.crt.pem'),
+			cert: readFileSync('jasons-mbp.crt.pem')
 		}
-	}
-};
+	};
+}
 
 export default config;
