@@ -15,11 +15,12 @@ const config = {
 	plugins: [sveltekit(), signalServer]
 };
 
-if (process.env.NODE_ENV !== 'production') {
+const { SSL_CRT, SSL_KEY } = process.env;
+if (SSL_CRT && SSL_KEY) {
 	config.server = {
 		https: {
-			key: readFileSync('jasons-mbp.key.pem'),
-			cert: readFileSync('jasons-mbp.crt.pem')
+			key: readFileSync(SSL_KEY),
+			cert: readFileSync(SSL_CRT)
 		}
 	};
 }
