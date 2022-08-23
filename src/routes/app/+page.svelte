@@ -140,7 +140,6 @@
 <style>
 	main {
 		margin: 0 auto;
-		padding: 0 1rem;
 		max-width: 400px;
 		padding: 1rem;
 		display: flex;
