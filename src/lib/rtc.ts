@@ -4,7 +4,6 @@ import type {
 	Message,
 	Offer,
 	Peer,
-	PeerMessage
 } from './types';
 import { v4 as uuid } from 'uuid';
 
@@ -35,8 +34,6 @@ type DataRtcEventName = {
 export class WebRTCClient {
 	#socket: WebSocket | undefined;
 	#stream: MediaStream | undefined;
-	#minWidth = 720;
-	#minHeight = 405;
 	#peerConnections = new Map<string, RTCPeerConnection>();
 	#peerIceCandidates = new Map<string, RTCIceCandidateInit[]>();
 	#peers = new Map<string, Peer>();
@@ -115,11 +112,7 @@ export class WebRTCClient {
 	async openStream(cameraId?: string): Promise<MediaStream> {
 		this.#stream = await navigator.mediaDevices.getUserMedia({
 			audio: { echoCancellation: true },
-			video: {
-				deviceId: cameraId,
-				width: { min: this.#minWidth },
-				height: { min: this.#minHeight }
-			}
+			video: { deviceId: cameraId }
 		});
 		return this.#stream;
 	}
@@ -258,13 +251,15 @@ export class WebRTCClient {
 		socket.onopen = () => {
 			console.log('Connected to signal server');
 			this.#emit('connected');
-			socket.send(JSON.stringify({
-				type: 'peer',
-				data: {
-					id: this.#id,
-					userId: this.#userId
-				}
-			}));
+			socket.send(
+				JSON.stringify({
+					type: 'peer',
+					data: {
+						id: this.#id,
+						userId: this.#userId
+					}
+				})
+			);
 		};
 
 		socket.onmessage = (event) => {
