@@ -3,50 +3,55 @@ import { describe, expect, it, vi } from 'vitest';
 import { handle } from './hooks.js';
 
 vi.mock('cookie', () => {
-  return {
-    parse: vi.fn(() => {
-      return {
-        session: 'bar'
-      };
-    })
-  };
+	return {
+		parse: vi.fn(() => {
+			return {
+				session: 'bar'
+			};
+		})
+	};
 });
 
 vi.mock('$lib/session', () => {
-  return {
-    getSession: vi.fn(async () => {
-      return {
+	return {
+		getSession: vi.fn(async () => {
+			return {
 				id: 'session-id',
 				user: {
 					id: 'user-id',
 					username: 'foo'
 				}
 			};
-    }),
-  };
+		})
+	};
 });
 
+vi.mock('$lib/db/session');
+
 describe('hooks', () => {
-  describe('handle', () => {
-    it('sets the session', async () => {
-      const event = {
-        request: {
-          headers: new Headers()
-        },
+	describe('handle', () => {
+		it('sets the session', async () => {
+			const event = {
+				request: {
+					headers: new Headers()
+				},
 				locals: {}
-      } as RequestEvent;
-      const resolve = vi.fn(
-        (event: RequestEvent) =>
-          ({
-            resolvedEvent: event
-          } as unknown as Response)
-      );
-      const resolved = await handle({ event, resolve });
-      expect(resolve).toHaveBeenCalled();
-      expect(resolved).toBeDefined();
-      expect(resolved).toEqual(resolve.mock.results[0].value);
-      const resolvedEvent = resolve.mock.calls[0][0];
-      expect(resolvedEvent.locals.user).toEqual({ id: 'user-id', username: 'foo' });
-    });
-  });
+			} as RequestEvent;
+			const resolve = vi.fn(
+				(event: RequestEvent) =>
+					({
+						resolvedEvent: event
+					} as unknown as Response)
+			);
+			const resolved = await handle({ event, resolve });
+			expect(resolve).toHaveBeenCalled();
+			expect(resolved).toBeDefined();
+			expect(resolved).toEqual(resolve.mock.results[0].value);
+			const resolvedEvent = resolve.mock.calls[0][0];
+			expect(resolvedEvent.locals.user).toEqual({
+				id: 'user-id',
+				username: 'foo'
+			});
+		});
+	});
 });
