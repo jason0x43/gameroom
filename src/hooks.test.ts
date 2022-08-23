@@ -26,8 +26,6 @@ vi.mock('$lib/session', () => {
 	};
 });
 
-vi.mock('$lib/db/session');
-
 describe('hooks', () => {
 	describe('handle', () => {
 		it('sets the session', async () => {
