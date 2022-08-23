@@ -9,10 +9,10 @@ import { PrismaClient } from '@prisma/client';
  * @typedef {import('http').Server} HttpServer
  * @typedef {import('http').IncomingMessage} IncomingMessage
  * @typedef {import('ws').WebSocket} WebSocket
- * @typedef {import('./src/lib/types').Peer} Peer
- * @typedef {import('./src/lib/types').Message} Message
- * @typedef {import('./src/lib/types').PeerMessage} PeerMessage
- * @typedef {import('./src/lib/types').OfferMessage} OfferMessage
+ * @typedef {import('../src/lib/types').Peer} Peer
+ * @typedef {import('../src/lib/types').Message} Message
+ * @typedef {import('../src/lib/types').PeerMessage} PeerMessage
+ * @typedef {import('../src/lib/types').OfferMessage} OfferMessage
  * @typedef {import('@prisma/client').User} User
  */
 
@@ -83,15 +83,13 @@ export function createSignalServer(httpServer, path) {
 			);
 		}
 
-		/** @type {PeerMessage} */
-		const msg = {
+		send(socket, {
 			type: 'peer',
 			data: {
 				...peer,
 				remove
 			}
-		};
-		send(socket, msg);
+		});
 	}
 
 	/**
@@ -245,7 +243,7 @@ export function createSignalServer(httpServer, path) {
 
 // Code to run when this script is called directly
 if (import.meta.url === `${url.pathToFileURL(process.argv[1])}`) {
-	const { handler } = await import('./build/handler.js');
+	const { handler } = await import('../build/handler.js');
 	const express = (await import('express')).default;
 	const app = express();
 
