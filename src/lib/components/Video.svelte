@@ -25,6 +25,7 @@
 		position: relative;
 		aspect-ratio: 16 / 9;
 		flex-grow: 1;
+		flex-shrink: 0;
 		overflow: hidden;
 		isolation: isolate;
 	}
