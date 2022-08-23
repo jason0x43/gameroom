@@ -1,10 +1,4 @@
-import type {
-	Answer,
-	Candidate,
-	Message,
-	Offer,
-	Peer,
-} from './types';
+import type { Answer, Candidate, Message, Offer, Peer } from './types';
 import { v4 as uuid } from 'uuid';
 
 type Handler<T = unknown> = (event: T) => void;
@@ -251,15 +245,6 @@ export class WebRTCClient {
 		socket.onopen = () => {
 			console.log('Connected to signal server');
 			this.#emit('connected');
-			socket.send(
-				JSON.stringify({
-					type: 'peer',
-					data: {
-						id: this.#id,
-						userId: this.#userId
-					}
-				})
-			);
 		};
 
 		socket.onmessage = (event) => {
@@ -397,6 +382,16 @@ export class WebRTCClient {
 				this.#addIceCandidate(msg.data);
 				break;
 			}
+
+			case 'ready':
+				this.#send({
+					type: 'peer',
+					data: {
+						id: this.#id,
+						userId: this.#userId
+					}
+				});
+				console.log('Sent peer update message');
 		}
 	}
 

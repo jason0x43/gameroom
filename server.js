@@ -17,6 +17,14 @@ import { PrismaClient } from '@prisma/client';
  */
 
 /**
+ * @param {WebSocket | undefined} socket
+ * @param {Message} message
+ */
+function send(socket, message) {
+	socket?.send(JSON.stringify(message));
+}
+
+/**
  * @param {HttpServer} httpServer
  * @param {string} path
  */
@@ -66,9 +74,13 @@ export function createSignalServer(httpServer, path) {
 		const peerUser = await getUser(peer.userId);
 
 		if (remove) {
-			console.log(`Telling ${clientUser?.username} that peer ${peerUser?.username} disconnected`);
+			console.log(
+				`Telling ${clientUser?.username} that peer ${peerUser?.username} disconnected`
+			);
 		} else {
-			console.log(`Telling ${clientUser?.username} about peer ${peerUser?.username}`);
+			console.log(
+				`Telling ${clientUser?.username} about peer ${peerUser?.username}`
+			);
 		}
 
 		/** @type {PeerMessage} */
@@ -79,7 +91,7 @@ export function createSignalServer(httpServer, path) {
 				remove
 			}
 		};
-		socket.send(JSON.stringify(msg));
+		send(socket, msg);
 	}
 
 	/**
@@ -99,18 +111,19 @@ export function createSignalServer(httpServer, path) {
 
 				// This is a new client -- tell it about any existing peers
 				if (!connections.has(socket)) {
-					console.log('Adding peer', client);
+					console.log('Adding client', client);
+					console.log(`Notifying client of ${connections.size} peers`);
 					for (const peer of connections.values()) {
-						notifyClient(socket, client, peer);
+						await notifyClient(socket, client, peer);
 					}
 				} else {
 					console.log('Updating peer', client);
 				}
 
-
 				// Announce the new/updated peer
+				console.log(`Notifying ${connections.size} peers about client`);
 				for (const [sock, peer] of connections.entries()) {
-					notifyClient(sock, peer, client);
+					await notifyClient(sock, peer, client);
 				}
 
 				// Store / update the connection's peer data
@@ -120,17 +133,17 @@ export function createSignalServer(httpServer, path) {
 
 			case 'offer':
 				// Notify the offer target about the offer
-				getConnection(msg.data.target)?.send(JSON.stringify(msg));
+				send(getConnection(msg.data.target), msg);
 				break;
 
 			case 'answer':
 				// Notify the offeror that an offer was accepted
-				getConnection(msg.data.source)?.send(JSON.stringify(msg));
+				send(getConnection(msg.data.source), msg);
 				break;
 
 			case 'candidate': {
 				// Notify one end of a connection of a candidate
-				getConnection(msg.data.target)?.send(JSON.stringify(msg));
+				send(getConnection(msg.data.target), msg);
 				break;
 			}
 		}
@@ -198,20 +211,20 @@ export function createSignalServer(httpServer, path) {
 		console.log('Client connected');
 
 		const user = /** @type {User} */ (await getSessionUser(request));
-		users.set(socket, user); 
+		users.set(socket, user);
 
 		// Handle an incoming message from the client
-		socket.on('message', (message) => {
+		socket.on('message', async (message) => {
 			console.log('Received message');
 			try {
-				handleMessage(JSON.parse(`${message}`), socket);
+				await handleMessage(JSON.parse(`${message}`), socket);
 			} catch (error) {
 				console.warn(`Error parsing message: ${error}`);
 			}
 		});
 
 		// When the client connection closes, remove the client's peer info
-		socket.on('close', () => {
+		socket.on('close', async () => {
 			console.log('Client disconnected');
 			const client = connections.get(socket);
 			if (client) {
@@ -219,10 +232,12 @@ export function createSignalServer(httpServer, path) {
 
 				// Notify peers that a client has closed
 				for (const [sock, peer] of connections.entries()) {
-					notifyClient(sock, peer, client, true);
+					await notifyClient(sock, peer, client, true);
 				}
 			}
 		});
+
+		send(socket, { type: 'ready' });
 	});
 
 	return server;

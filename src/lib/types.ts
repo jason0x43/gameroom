@@ -11,9 +11,9 @@ export type PeerMessage = {
 };
 
 export type Candidate = {
-		id: string;
-		target: string;
-		candidate: RTCIceCandidateInit;
+	id: string;
+	target: string;
+	candidate: RTCIceCandidateInit;
 };
 
 export type CandidateMessage = {
@@ -22,11 +22,11 @@ export type CandidateMessage = {
 };
 
 export type Offer = {
-		/** the offeror */
-		source: string;
-		/** the target of the offer */
-		target: string;
-		sdp: string;
+	/** the offeror */
+	source: string;
+	/** the target of the offer */
+	target: string;
+	sdp: string;
 };
 
 export type OfferMessage = {
@@ -41,4 +41,13 @@ export type AnswerMessage = {
 	data: Answer;
 };
 
-export type Message = PeerMessage | CandidateMessage | OfferMessage | AnswerMessage;
+export type ReadyMessage = {
+	type: 'ready';
+};
+
+export type Message =
+	| PeerMessage
+	| CandidateMessage
+	| OfferMessage
+	| AnswerMessage
+	| ReadyMessage;
