@@ -59,7 +59,7 @@ jobs:
           REPO: ${{ secrets.DEPLOY_REPO }}
 
       - name: Rebuild app
-        run: ssh staging "pnpm install --frozen-lockfile && pnpm build && pnpm migrate"
+        run: ssh staging "cd $REPO && pnpm install && pnpm build && pnpm migrate"
 
       - name: Restart app
         run: ssh staging "systemctl --user restart --now gameroom"
