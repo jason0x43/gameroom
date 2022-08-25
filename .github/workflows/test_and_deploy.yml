@@ -5,11 +5,15 @@ on:
 
 jobs:
   test_and_deploy:
+    name: Test and deploy
+
     runs-on: ubuntu-latest
+
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_REPO: ${{ secrets.DEPLOY_REPO }}
       DATABASE_URL: file:./data.db
+
     steps:
       - name: Checkout the app repo
         uses: actions/checkout@v2
