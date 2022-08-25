@@ -2,7 +2,7 @@ import { sveltekit } from '@sveltejs/kit/vite';
 import { readFileSync } from 'fs';
 
 /** @type {import('vite').UserConfigFn} */
-export default async function defineConfig({ command }) {
+export default async function defineConfig({ command, mode }) {
 	/** @type {import('vite').UserConfig} */
 	const config = {
 		plugins: [sveltekit()]
@@ -30,6 +30,10 @@ export default async function defineConfig({ command }) {
 				cert: readFileSync(SSL_CRT)
 			}
 		};
+	}
+
+	if (mode === 'test' && !process.env.DATABASE_URL) {
+		process.env.DATABASE_URL = 'file:../test.db?connection_limit=1';
 	}
 
 	return config;
