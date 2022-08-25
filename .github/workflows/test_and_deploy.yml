@@ -54,7 +54,7 @@ jobs:
           SSH_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
 
       - name: Update app source
-        run: ssh staging "cd $REPO && git fetch && git reset --hard origin/master"
+        run: ssh staging "cd $REPO && git fetch && git reset --hard origin/main"
         env:
           REPO: ${{ secrets.DEPLOY_REPO }}
 
