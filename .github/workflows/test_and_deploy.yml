@@ -13,18 +13,23 @@ jobs:
     steps:
       - name: Checkout the app repo
         uses: actions/checkout@v2
+
       - name: Setup node
         uses: actions/setup-node@v3
         with:
           node-version: 18
+
       - name: Install pnpm
         uses: pnpm/action-setup@v2.2.2
         with:
           version: 7.8.0
+
       - name: Install app dependencies
         run: pnpm install --frozen-lockfile
+
       - name: Run tests
         run: pnpm test
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh/
@@ -43,5 +48,14 @@ jobs:
           SSH_KEY: ${{ secrets.DEPLOY_KEY }}
           SSH_HOST: ${{ secrets.DEPLOY_HOST }}
           SSH_HOST_KEY: ${{ secrets.DEPLOY_HOST_KEY }}
-      - name: Deploy
-        run: pnpm push
+
+      - name: Update app source
+        run: ssh staging "cd $REPO && git fetch && git reset --hard origin/master"
+        env:
+          REPO: ${{ secrets.DEPLOY_REPO }}
+
+      - name: Rebuild app
+        run: ssh staging "pnpm install --frozen-lockfile && pnpm build && pnpm migrate"
+
+      - name: Restart app
+        run: ssh staging "systemctl --user restart --now gameroom"

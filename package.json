@@ -13,8 +13,7 @@
 		"format": "prettier --write --plugin-search-dir=. .",
 		"migrate": "prisma migrate deploy",
 		"db": "ts-node scripts/db.ts",
-		"test": "vitest run",
-		"push": "ts-node ./scripts/deploy.ts"
+		"test": "vitest run"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "1.0.0-next.86",
