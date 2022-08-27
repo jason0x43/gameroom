@@ -38,7 +38,7 @@
 		justify-content: center;
 	}
 
-  .error {
-    color: #f33;
-  }
+	.error {
+		color: #f33;
+	}
 </style>
