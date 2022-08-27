@@ -1,9 +1,8 @@
-import bcrypt from 'bcryptjs';
 import readline from 'readline';
 import { Writable } from 'stream';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { prisma } from '../src/lib/db.js';
+import { createUser } from '../src/lib/db/user';
 
 type MutableWritable = Writable & { muted?: boolean };
 
@@ -53,17 +52,7 @@ yargs(hideBin(process.argv))
 				mutableStdout.muted = true;
 			});
 
-			await prisma.user.create({
-				data: {
-					username: argv.username,
-					email: argv.email,
-					password: {
-						create: {
-							hash: await bcrypt.hash(password, 7)
-						}
-					}
-				}
-			});
+			createUser(argv, password);
 		}
 	)
 	.parse();

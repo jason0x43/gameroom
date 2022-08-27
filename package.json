@@ -5,13 +5,11 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
-		"prepare": "prisma generate",
 		"preview": "node ./scripts/server.js",
 		"check": "svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check --plugin-search-dir=. . && eslint .",
 		"format": "prettier --write --plugin-search-dir=. .",
-		"migrate": "prisma migrate deploy",
 		"db": "ts-node scripts/db.ts",
 		"test": "vitest run"
 	},
