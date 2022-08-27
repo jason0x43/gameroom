@@ -1,4 +1,5 @@
 import { sveltekit } from '@sveltejs/kit/vite';
+import { loadEnv } from 'vite';
 import { readFileSync } from 'fs';
 
 /** @type {import('vite').UserConfigFn} */
@@ -10,6 +11,7 @@ export default async function defineConfig({ command, mode }) {
 
 	if (command === 'serve') {
 		const { createSignalServer } = await import('./scripts/serverUtil.js');
+		process.env = { ...process.env, ...loadEnv(mode, process.cwd()) };
 
 		/** @type {import('vite').Plugin} */
 		const signalServer = {

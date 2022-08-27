@@ -1,5 +1,5 @@
-import { prisma } from '$lib/db';
-import { createUserSession } from '$lib/db/session';
+import type { User } from '$lib/db/schema';
+import { createUserSession, deleteSession } from '$lib/db/session';
 import { verifyLogin } from '$lib/db/user';
 import type { ErrorResponse } from '$lib/request';
 import {
@@ -7,7 +7,6 @@ import {
 	createSessionCookie,
 	getSessionId
 } from '$lib/session';
-import type { User } from '@prisma/client';
 import type { Action, PageServerLoad } from './$types';
 
 export type LoginRequest = {
@@ -25,12 +24,7 @@ export const load: PageServerLoad = async ({ request, setHeaders }) => {
 	const cookie = request.headers.get('cookie');
 	const sessionId = getSessionId(cookie);
 	if (sessionId) {
-		await prisma.session.delete({
-			where: {
-				id: sessionId
-			}
-		});
-
+		deleteSession(sessionId);
 		setHeaders({
 			'set-cookie': clearSessionCookie()
 		});
@@ -49,7 +43,7 @@ export const POST: Action = async function ({ request, setHeaders }) {
 		};
 	}
 
-	const user = await verifyLogin({ username, password });
+	const user = verifyLogin({ username, password });
 
 	if (!user) {
 		return {
@@ -58,7 +52,7 @@ export const POST: Action = async function ({ request, setHeaders }) {
 		};
 	}
 
-	const session = await createUserSession(user.id);
+	const session = createUserSession(user.id);
 
 	setHeaders({
 		'set-cookie': createSessionCookie(session)

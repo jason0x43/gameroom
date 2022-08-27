@@ -1,32 +1,46 @@
-import { prisma } from '$lib/db';
-import type { Session, User } from '@prisma/client';
+import { getDb } from '.';
+import type { Session, User } from './schema';
+import cuid from 'cuid';
 
 export type SessionWithUser = Session & {
 	user: User;
 };
 
-export async function getSessionWithUser(
-	id: Session['id']
-): Promise<SessionWithUser | null> {
+export function getSessionWithUser(id: Session['id']): SessionWithUser | null {
 	if (!id) {
 		return null;
 	}
 
-	return await prisma.session.findUnique({
-		where: {
-			id
-		},
-		include: {
-			user: true
-		}
-	});
+	const db = getDb();
+	const session: SessionWithUser | null = db
+		.prepare<Session['id']>('SELECT * FROM Session WHERE id = ?')
+		.get(id);
+	if (session) {
+		const user: User = db
+			.prepare<User['id']>('SELECT * FROM User WHERE id = ?')
+			.get(session.userId);
+		return {
+			...session,
+			user
+		};
+	}
+
+	return null;
 }
 
-export async function createUserSession(userId: User['id']): Promise<Session> {
-	return await prisma.session.create({
-		data: {
-			userId,
-			expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7)
-		}
-	});
+export function createUserSession(userId: User['id']): Session {
+	const db = getDb();
+	const expires = Number(new Date(Date.now() + 1000 * 60 * 60 * 24 * 7));
+	const session: Session = db
+		.prepare<[Session['id'], Session['expires'], Session['userId']]>(
+			'INSERT INTO Session (id, expires, userId) VALUES (?, ?, ?)' +
+				' RETURNING *'
+		)
+		.get(cuid(), expires, userId);
+	return session;
+}
+
+export function deleteSession(id: Session['id']): void {
+	const db = getDb();
+	db.prepare<Session['id']>('DELETE FROM Session WHERE id = ?').run(id);
 }

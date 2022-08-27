@@ -1,40 +1,48 @@
-import type { Password, User } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { prisma } from '../db';
+import { getDb } from '.';
+import type { Password, User } from './schema';
 
-export async function verifyLogin({
-  username,
-  password
+export function verifyLogin({
+	username,
+	password
 }: {
-  username: User['username'];
-  password: Password['hash'];
-}): Promise<User | null> {
-  const user = await prisma.user.findUnique({
-    where: { username },
-    include: {
-      password: true
-    }
-  });
+	username: User['username'];
+	password: Password['hash'];
+}): User | null {
+	const db = getDb();
+	const passwd: Pick<Password, 'hash'> = db
+		.prepare<User['username']>(
+			`SELECT hash
+      FROM Password
+      INNER JOIN User
+        ON User.id = Password.userId
+      WHERE username = ?`
+		)
+		.get(username);
 
-  if (!user || !user.password) {
-    return null;
-  }
+	if (!passwd) {
+		return null;
+	}
 
-  const isValid = await bcrypt.compare(password, user.password.hash);
+	const isValid = bcrypt.compareSync(password, passwd.hash);
 
-  if (!isValid) {
-    return null;
-  }
+	if (!isValid) {
+		return null;
+	}
 
-  const { password: _, ...userWithoutPassword } = user;
-  return userWithoutPassword;
+  const user: User = db.prepare<User['username']>(
+    'SELECT * from User WHERE username = ?'
+  ).get(username);
+
+	return user;
 }
 
-export async function getUserById(userId: User['id']): Promise<User | null> {
-  return await prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      password: false
-    }
-  });
+export function getUserById(userId: User['id']): User | null {
+  const db = getDb();
+
+  const user: User = db.prepare<User['id']>(
+    'SELECT * from User WHERE id = ?'
+  ).get(userId);
+
+	return user;
 }

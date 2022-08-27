@@ -1,6 +1,6 @@
 import { WebSocketServer } from 'ws';
 import { parse as parseCookies } from 'cookie';
-import { PrismaClient } from '@prisma/client';
+import sqlite3 from 'better-sqlite3';
 
 /**
  * This is the signal server used to manage connections between peers.
@@ -12,7 +12,8 @@ import { PrismaClient } from '@prisma/client';
  * @typedef {import('../src/lib/types').Message} Message
  * @typedef {import('../src/lib/types').PeerMessage} PeerMessage
  * @typedef {import('../src/lib/types').OfferMessage} OfferMessage
- * @typedef {import('@prisma/client').User} User
+ * @typedef {import('../src/lib/db/schema').User} User
+ * @typedef {import('../src/lib/db/schema').Session} Session
  */
 
 /**
@@ -30,8 +31,11 @@ function send(socket, message) {
 export function createSignalServer(httpServer, path) {
 	const server = new WebSocketServer({ noServer: true });
 
-	const db = new PrismaClient();
-	db.$connect();
+	if (!process.env.VITE_DB) {
+		throw new Error('Missing VITE_DB');
+	}
+
+	const db = sqlite3(process.env.VITE_DB);
 
 	/**
 	 * A map of sockets to peer info.
@@ -149,12 +153,7 @@ export function createSignalServer(httpServer, path) {
 	/** @param {string} userId */
 	async function getUser(userId) {
 		try {
-			const user = await db.user.findUnique({
-				where: {
-					id: userId
-				}
-			});
-
+			const user = db.prepare('SELECT * from User WHERE id = ?').get(userId);
 			return user ?? undefined;
 		} catch (error) {
 			return undefined;
@@ -176,19 +175,20 @@ export function createSignalServer(httpServer, path) {
 		}
 
 		try {
-			const session = await db.session.findUnique({
-				where: {
-					id: cookies.session
-				},
-				include: {
-					user: true
-				}
-			});
-
-			return session?.user;
+			/** @type {Session | null} */
+			const session = db
+				.prepare('SELECT * from Session WHERE id = ?')
+				.get(cookies.session);
+			if (session) {
+				return (
+					db.prepare('SELECT * from User WHERE id = ?').get(session.userId) ??
+					undefined
+				);
+			}
 		} catch (error) {
-			return undefined;
+			// ignore
 		}
+		return undefined;
 	}
 
 	httpServer.on('upgrade', async function (request, socket, head) {

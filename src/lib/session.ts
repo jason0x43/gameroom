@@ -1,5 +1,5 @@
-import type { Session } from '@prisma/client';
 import * as cookie from 'cookie';
+import type { Session } from './db/schema';
 import { getSessionWithUser, type SessionWithUser } from './db/session';
 
 const options = {
@@ -16,7 +16,7 @@ export async function getSession(
 		return undefined;
 	}
 	const cookies = cookie.parse(cookieStr);
-	return (await getSessionWithUser(cookies.session)) ?? undefined;
+	return getSessionWithUser(cookies.session) ?? undefined;
 }
 
 export function createSessionCookie(session: Session): string {
