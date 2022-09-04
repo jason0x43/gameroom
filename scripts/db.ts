@@ -2,7 +2,10 @@ import readline from 'readline';
 import { Writable } from 'stream';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import { createUser } from '../src/lib/db/user';
+import { createUser } from '../src/lib/db/user.js';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 type MutableWritable = Writable & { muted?: boolean };
 

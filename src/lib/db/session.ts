@@ -1,5 +1,5 @@
-import { getDb } from '.';
-import type { Session, User } from './schema';
+import { getDb } from './lib/db.js';
+import type { Session, User } from './schema.js';
 import cuid from 'cuid';
 
 export type SessionWithUser = Session & {
@@ -13,11 +13,11 @@ export function getSessionWithUser(id: Session['id']): SessionWithUser | null {
 
 	const db = getDb();
 	const session: SessionWithUser | null = db
-		.prepare<Session['id']>('SELECT * FROM Session WHERE id = ?')
+		.prepare<Session['id']>('SELECT * FROM session WHERE id = ?')
 		.get(id);
 	if (session) {
 		const user: User = db
-			.prepare<User['id']>('SELECT * FROM User WHERE id = ?')
+			.prepare<User['id']>('SELECT * FROM user WHERE id = ?')
 			.get(session.userId);
 		return {
 			...session,
@@ -33,7 +33,7 @@ export function createUserSession(userId: User['id']): Session {
 	const expires = Number(new Date(Date.now() + 1000 * 60 * 60 * 24 * 7));
 	const session: Session = db
 		.prepare<[Session['id'], Session['expires'], Session['userId']]>(
-			'INSERT INTO Session (id, expires, userId) VALUES (?, ?, ?)' +
+			'INSERT INTO session (id, expires, userId) VALUES (?, ?, ?)' +
 				' RETURNING *'
 		)
 		.get(cuid(), expires, userId);
@@ -42,5 +42,5 @@ export function createUserSession(userId: User['id']): Session {
 
 export function deleteSession(id: Session['id']): void {
 	const db = getDb();
-	db.prepare<Session['id']>('DELETE FROM Session WHERE id = ?').run(id);
+	db.prepare<Session['id']>('DELETE FROM session WHERE id = ?').run(id);
 }

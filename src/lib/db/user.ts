@@ -1,17 +1,17 @@
 import bcrypt from 'bcryptjs';
 import cuid from 'cuid';
-import { getDb } from '.';
-import type { Password, User } from './schema';
+import { getDb } from './lib/db.js';
+import type { Password, User } from './schema.js';
 
 export function createUser(userData: Omit<User, 'id'>, password: string) {
 	const db = getDb();
 	const user: User = db
 		.prepare<[User['id'], User['username'], User['email']]>(
-			'INSERT INTO User (id, username, email) VALUES (?, ?, ?) RETURNING *'
+			'INSERT INTO user (id, username, email) VALUES (?, ?, ?) RETURNING *'
 		)
 		.get(cuid(), userData.username, userData.email);
 	db.prepare<[Password['hash'], User['id']]>(
-		'INSERT INTO Password (hash, userId) VALUES (?, ?)'
+		'INSERT INTO password (hash, userId) VALUES (?, ?)'
 	).run(bcrypt.hashSync(password, 7), user.id);
 	return user;
 }
@@ -27,9 +27,9 @@ export function verifyLogin({
 	const passwd: Pick<Password, 'hash'> = db
 		.prepare<User['username']>(
 			`SELECT hash
-			FROM Password
-			INNER JOIN User
-			ON User.id = Password.userId
+			FROM password
+			INNER JOIN user
+			ON user.id = password.userId
 			WHERE username = ?`
 		)
 		.get(username);
@@ -55,7 +55,7 @@ export function getUserById(userId: User['id']): User | null {
 	const db = getDb();
 
 	const user: User = db
-		.prepare<User['id']>('SELECT * from User WHERE id = ?')
+		.prepare<User['id']>('SELECT * from user WHERE id = ?')
 		.get(userId);
 
 	return user;

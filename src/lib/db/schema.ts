@@ -1,8 +1,7 @@
-export const version = 1;
-
 export type Meta = {
-	version: number;
-}
+	key: string;
+	value: string;
+};
 
 export type User = {
 	id: string;
@@ -21,3 +20,11 @@ export type Session = {
 	expires: number;
 	userId: User['id'];
 };
+
+export type StandardPinochleGame = {
+	id: string;
+	player1: string;
+	player2: string;
+	player3: string;
+	player4: string;
+}
