@@ -1,0 +1,181 @@
+<script type="ts">
+	import { onMount } from 'svelte';
+	import Video from '$lib/components/Video.svelte';
+	import Hbox from '$lib/components/Hbox.svelte';
+	import Vbox from '$lib/components/Vbox.svelte';
+	import Select from '$lib/components/Select.svelte';
+	import { WebRTCClient } from '$lib/rtc';
+	import type { Offer, Peer } from '$lib/types';
+	import type { PageData, Errors } from './$types';
+
+	export let data: PageData;
+	export let errors: Errors;
+
+	$: {
+		if (errors) {
+			console.warn(errors);
+		}
+	}
+
+	const user = data.user;
+
+	let peer: string = '';
+	let peers: Peer[] = [];
+	let localStream: MediaStream | undefined;
+	let connectedPeers: {
+		[peerId: string]: { stream: MediaStream; name: string };
+	} = {};
+	let client: WebRTCClient;
+	let status = 'disconnected';
+	let offer: Offer | undefined;
+	let accepted: Offer | undefined;
+
+	function getPeerName(offer: Offer) {
+		const p = peers.find((peer) => peer.id === offer.source);
+		return p?.name ?? offer.source;
+	}
+
+	onMount(function () {
+		client = new WebRTCClient(user.id);
+
+		client.on('connected', () => {
+			status = 'connected';
+		});
+
+		client.on('disconnected', () => {
+			status = 'disconnected';
+		});
+
+		client.on('peerconnected', ({ stream, peer }) => {
+			connectedPeers = {
+				...connectedPeers,
+				[peer.id]: { stream, name: peer.name ?? peer.id }
+			};
+		});
+
+		client.on('peeradded', (peer) => {
+			peers = [...peers, peer];
+		});
+
+		client.on('peerupdated', (peer) => {
+			if (connectedPeers[peer.id]) {
+				connectedPeers = {
+					...connectedPeers,
+					[peer.id]: { ...connectedPeers[peer.id], name: peer.name ?? peer.id }
+				};
+			}
+		});
+
+		client.on('peerremoved', (peer) => {
+			const index = peers.findIndex(({ id }) => id === peer.id);
+			if (index > -1) {
+				peers = [...peers.slice(0, index), ...peers.slice(index + 1)];
+			}
+		});
+
+		client.on('offer', (ofr) => {
+			offer = ofr;
+		});
+
+		return () => {
+			client.close();
+		};
+	});
+</script>
+
+<main>
+	<Vbox>
+		<Video name={user.username} stream={localStream} />
+		<Hbox>
+			<Select
+				bind:value={peer}
+				placeholder="Select a friend"
+				options={peers.map((peer) => ({
+					label: peer.name,
+					value: peer.id
+				}))}
+			/>
+			<button
+				on:click={async () => {
+					localStream = await client.openStream();
+					client?.invite(peer);
+				}}
+				disabled={!peer}>Connect</button
+			>
+		</Hbox>
+		<Hbox>
+			<Vbox>
+				{#each Object.values(connectedPeers) as { stream, name }}
+					<Video {name} {stream} />
+				{/each}
+			</Vbox>
+		</Hbox>
+	</Vbox>
+	<Hbox between>
+		<p class="dim">Client ID: {client?.id}</p>
+		<span class="status" class:connected={status === 'connected'}>{status}</span
+		>
+	</Hbox>
+</main>
+
+{#if offer && accepted !== offer}
+	<div class="modal">
+		<div class="modal-content">
+			<Vbox>
+				<p>Invite from {getPeerName(offer)}</p>
+				<button
+					on:click={async () => {
+						if (offer) {
+							localStream = await client.openStream();
+							client.accept(offer);
+							accepted = offer;
+						}
+					}}>Accept</button
+				>
+			</Vbox>
+		</div>
+	</div>
+{/if}
+
+<style>
+	main {
+		margin: 0 auto;
+		max-width: 400px;
+		padding: 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.dim {
+		color: #aaa;
+	}
+
+	.status {
+		font-style: italic;
+		color: #a00;
+		/* to account for italic slant */
+		padding-right: 0.25em;
+	}
+
+	.connected {
+		color: #0a0;
+	}
+
+	.modal {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100vw;
+		height: 100vh;
+		background: rgba(0, 0, 0, 0.5);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.modal-content {
+		background: white;
+		padding: 1rem;
+	}
+</style>

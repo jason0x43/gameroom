@@ -1,15 +1,17 @@
 <script>
-	import Hbox from '$lib/components/Hbox.svelte';
+	import Box from '$lib/components/Box.svelte';
 </script>
 
 <div class="menubar">
-	<Hbox between middle>
+	<Box justify="between" align="center">
 		<strong>GameRoom</strong>
 		<a href="/login">Logout</a>
-	</Hbox>
+	</Box>
 </div>
 
-<slot />
+<Box justify="center" align="center" fill>
+	<slot />
+</Box>
 
 <style>
 	.menubar {
