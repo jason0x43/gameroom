@@ -27,10 +27,10 @@ export function verifyLogin({
 	const passwd: Pick<Password, 'hash'> = db
 		.prepare<User['username']>(
 			`SELECT hash
-      FROM Password
-      INNER JOIN User
-        ON User.id = Password.userId
-      WHERE username = ?`
+			FROM Password
+			INNER JOIN User
+			ON User.id = Password.userId
+			WHERE username = ?`
 		)
 		.get(username);
 
