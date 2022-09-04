@@ -9,7 +9,7 @@ export default async function defineConfig({ command, mode }) {
 		plugins: [sveltekit()]
 	};
 
-	if (command === 'serve') {
+	if (command === 'serve' && mode !== 'test') {
 		const { createSignalServer } = await import('./scripts/serverUtil.js');
 		process.env = { ...process.env, ...loadEnv(mode, process.cwd()) };
 
