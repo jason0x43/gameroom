@@ -1,8 +1,7 @@
 <script type="ts">
 	import { onMount } from 'svelte';
 	import Video from '$lib/components/Video.svelte';
-	import Hbox from '$lib/components/Hbox.svelte';
-	import Vbox from '$lib/components/Vbox.svelte';
+	import Box from '$lib/components/Box.svelte';
 	import Select from '$lib/components/Select.svelte';
 	import { WebRTCClient } from '$lib/rtc';
 	import type { Offer, Peer } from '$lib/types';
@@ -84,9 +83,9 @@
 </script>
 
 <main>
-	<Vbox>
+	<Box vertical>
 		<Video name={user.username} stream={localStream} />
-		<Hbox>
+		<Box>
 			<Select
 				bind:value={peer}
 				placeholder="Select a friend"
@@ -102,26 +101,26 @@
 				}}
 				disabled={!peer}>Connect</button
 			>
-		</Hbox>
-		<Hbox>
-			<Vbox>
+		</Box>
+		<Box>
+			<Box vertical>
 				{#each Object.values(connectedPeers) as { stream, name }}
 					<Video {name} {stream} />
 				{/each}
-			</Vbox>
-		</Hbox>
-	</Vbox>
-	<Hbox between>
+			</Box>
+		</Box>
+	</Box>
+	<Box justify="between">
 		<p class="dim">Client ID: {client?.id}</p>
 		<span class="status" class:connected={status === 'connected'}>{status}</span
 		>
-	</Hbox>
+	</Box>
 </main>
 
 {#if offer && accepted !== offer}
 	<div class="modal">
 		<div class="modal-content">
-			<Vbox>
+			<Box vertical>
 				<p>Invite from {getPeerName(offer)}</p>
 				<button
 					on:click={async () => {
@@ -132,7 +131,7 @@
 						}
 					}}>Accept</button
 				>
-			</Vbox>
+			</Box>
 		</div>
 	</div>
 {/if}

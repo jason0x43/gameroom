@@ -1,5 +1,5 @@
 <script type="ts">
-	import Vbox from '$lib/components/Vbox.svelte';
+	import Box from '$lib/components/Box.svelte';
 
 	export let errors: Record<string, string> | undefined;
 
@@ -9,7 +9,7 @@
 
 <section class="login">
 	<form method="post">
-		<Vbox>
+		<Box vertical>
 			<input name="username" placeholder="username" bind:value={username} />
 			<input
 				name="password"
@@ -26,7 +26,7 @@
 			{#if errors?.password}
 				<div class="error">{errors.password}</div>
 			{/if}
-		</Vbox>
+		</Box>
 	</form>
 </section>
 
