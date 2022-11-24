@@ -1,5 +1,5 @@
 <script type="ts">
-	export let value: string;
+	export let value: string = '';
 	export let options: { label?: string; value: string }[];
 	export let placeholder: string | undefined = undefined;
 </script>

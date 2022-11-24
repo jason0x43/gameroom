@@ -62,10 +62,44 @@ export const migrations: Migration[] = [
 						FOREIGN KEY (userId) REFERENCES user (id) ON DELETE CASCADE ON UPDATE NO ACTION
 					)`
 				).run();
+
+				db.prepare(
+					`CREATE TABLE game (
+						id TEXT NOT NULL PRIMARY KEY,
+						type TEXT NOT NULL,
+						minPlayers NUMBER NOT NULL,
+						maxPlayers NUMBER NOT NULL
+					)`
+				).run();
+
+				db.prepare(
+					`CREATE TABLE gamePlayer (
+						gameId TEXT NOT NULL, 
+						userId TEXT NOT NULL,
+						PRIMARY KEY (gameId, userId),
+						FOREIGN KEY (gameId) REFERENCES game (id) ON DELETE CASCADE ON UPDATE NO ACTION,
+						FOREIGN KEY (userId) REFERENCES user (id) ON DELETE CASCADE ON UPDATE NO ACTION
+					)`
+				).run();
+
+				db.prepare(
+					`CREATE TABLE gameAction (
+						gameId TEXT NOT NULL, 
+						userId TEXT NOT NULL,
+						time NUMBER NOT NULL,
+						action TEXT NOT NULL,
+						UNIQUE(gameId, time),
+						FOREIGN KEY (gameId) REFERENCES game (id) ON DELETE CASCADE ON UPDATE NO ACTION,
+						FOREIGN KEY (userId) REFERENCES user (id) ON DELETE CASCADE ON UPDATE NO ACTION
+					)`
+				).run();
 			})();
 		},
 
 		down(db) {
+			db.prepare('DROP TABLE gameAction').run();
+			db.prepare('DROP TABLE gamePlayer').run();
+			db.prepare('DROP TABLE game').run();
 			db.prepare('DROP TABLE session').run();
 			db.prepare('DROP TABLE password').run();
 			db.prepare('DROP TABLE user').run();

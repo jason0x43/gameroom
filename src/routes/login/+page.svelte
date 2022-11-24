@@ -1,7 +1,8 @@
 <script type="ts">
 	import Box from '$lib/components/Box.svelte';
+	import type { ActionData } from './$types';
 
-	export let errors: Record<string, string> | undefined;
+	export let form: ActionData;
 
 	let username = '';
 	let password = '';
@@ -19,12 +20,12 @@
 			/>
 			<button type="submit">login</button>
 
-			{#if errors?.username}
-				<div class="error">{errors.username}</div>
+			{#if form?.username}
+				<div class="error">{form.username}</div>
 			{/if}
 
-			{#if errors?.password}
-				<div class="error">{errors.password}</div>
+			{#if form?.password}
+				<div class="error">{form.password}</div>
 			{/if}
 		</Box>
 	</form>

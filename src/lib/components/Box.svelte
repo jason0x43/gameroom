@@ -1,7 +1,7 @@
 <script type="ts">
 	export let vertical = false;
 	export let fill = false;
-	export let align: 'start' | 'center' | 'end' = 'start';
+	export let align: 'start' | 'center' | 'end' | 'stretch' = 'stretch';
 	export let justify: 'start' | 'around' | 'between' | 'center' | 'end' =
 		'start';
 </script>

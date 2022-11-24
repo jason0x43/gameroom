@@ -1,64 +1,45 @@
-import type { User } from '$lib/db/schema';
 import { createUserSession, deleteSession } from '$lib/db/session';
 import { verifyLogin } from '$lib/db/user';
-import type { ErrorResponse } from '$lib/request';
 import {
-	clearSessionCookie,
-	createSessionCookie,
-	getSessionId
+    clearSessionCookie,
+    getSessionId,
+    setSessionCookie
 } from '$lib/session';
-import type { Action, PageServerLoad } from './$types';
+import { invalid, redirect } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
 
-export type LoginRequest = {
-	username: string;
-	password: string;
-};
-
-export type LoginResponse =
-	| {
-			user?: User;
-	  }
-	| ErrorResponse<{ username?: string; password?: string }>;
-
-export const load: PageServerLoad = async ({ request, setHeaders }) => {
+export const load: PageServerLoad = async ({ request, cookies }) => {
 	const cookie = request.headers.get('cookie');
 	const sessionId = getSessionId(cookie);
 	if (sessionId) {
 		deleteSession(sessionId);
-		setHeaders({
-			'set-cookie': clearSessionCookie()
-		});
+		clearSessionCookie(cookies);
 	}
 };
 
-export const POST: Action = async function ({ request, setHeaders }) {
-	const data = await request.formData();
-	const username = data.get('username');
-	const password = data.get('password');
+export const actions: Actions = {
+	default: async ({ request, cookies }) => {
+		const data = await request.formData();
+		const username = data.get('username');
+		const password = data.get('password');
 
-	if (typeof username !== 'string' || typeof password !== 'string') {
-		return {
-			status: 403,
-			errors: { username: 'Invalid username or password' }
-		};
+		if (typeof username !== 'string') {
+			return invalid(403, { username: 'Missing or invalid username' });
+		}
+		if (typeof password !== 'string') {
+			return invalid(403, { password: 'Missing or invalid password' });
+		}
+
+		const user = verifyLogin({ username, password });
+
+		if (!user) {
+			return invalid(403, { username: 'Invalid username or password' });
+		}
+
+		const session = createUserSession(user.id);
+
+		setSessionCookie(cookies, session);
+
+		throw redirect(301, '/');
 	}
-
-	const user = verifyLogin({ username, password });
-
-	if (!user) {
-		return {
-			status: 403,
-			errors: { username: 'Invalid username or password' }
-		};
-	}
-
-	const session = createUserSession(user.id);
-
-	setHeaders({
-		'set-cookie': createSessionCookie(session)
-	});
-
-	return {
-		location: '/'
-	};
 };

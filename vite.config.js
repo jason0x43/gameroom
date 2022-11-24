@@ -34,8 +34,8 @@ export default async function defineConfig({ command, mode }) {
 		};
 	}
 
-	if (mode === 'test' && !process.env.DATABASE_URL) {
-		process.env.DATABASE_URL = 'file:../test.db?connection_limit=1';
+	if (mode === 'test' && !process.env.VITE_DB) {
+		process.env.VITE_DB = 'test.db';
 	}
 
 	return config;

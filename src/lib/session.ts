@@ -1,3 +1,4 @@
+import type { Cookies } from '@sveltejs/kit';
 import * as cookie from 'cookie';
 import type { Session } from './db/schema';
 import { getSessionWithUser, type SessionWithUser } from './db/session';
@@ -26,17 +27,24 @@ export function createSessionCookie(session: Session): string {
 	});
 }
 
+export function clearSessionCookie(cookies: Cookies): void {
+	cookies.set('session', '', {
+		...options,
+		expires: new Date(0)
+	});
+}
+
+export function setSessionCookie(cookies: Cookies, session: Session): void {
+	cookies.set('session', session.id, {
+		...options,
+		expires: new Date(session.expires)
+	});
+}
+
 export function getSessionId(cookieStr: string | null): string | undefined {
 	if (!cookieStr) {
 		return undefined;
 	}
 	const cookies = cookie.parse(cookieStr);
 	return cookies.session;
-}
-
-export function clearSessionCookie(): string {
-	return cookie.serialize('session', '', {
-		...options,
-		expires: new Date(0)
-	});
 }

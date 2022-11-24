@@ -5,20 +5,13 @@
 	import Select from '$lib/components/Select.svelte';
 	import { WebRTCClient } from '$lib/rtc';
 	import type { Offer, Peer } from '$lib/types';
-	import type { PageData, Errors } from './$types';
+	import type { PageData } from './$types';
 
 	export let data: PageData;
-	export let errors: Errors;
-
-	$: {
-		if (errors) {
-			console.warn(errors);
-		}
-	}
 
 	const user = data.user;
 
-	let peer: string = '';
+	let peer = '';
 	let peers: Peer[] = [];
 	let localStream: MediaStream | undefined;
 	let connectedPeers: {

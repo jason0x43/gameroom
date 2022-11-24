@@ -12,7 +12,6 @@ jobs:
     env:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_REPO: ${{ secrets.DEPLOY_REPO }}
-      DATABASE_URL: file:./data.db
 
     steps:
       - name: Checkout the app repo

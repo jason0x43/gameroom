@@ -21,10 +21,21 @@ export type Session = {
 	userId: User['id'];
 };
 
-export type StandardPinochleGame = {
+export type Game = {
 	id: string;
-	player1: string;
-	player2: string;
-	player3: string;
-	player4: string;
-}
+	type: 'standard_pinochle' | 'war';
+	minPlayers: number;
+	maxPlayers: number;
+};
+
+export type GamePlayer = {
+	gameId: string;
+	uerId: string;
+};
+
+export type GameAction = {
+	gameId: string;
+	userId: string;
+	time: number;
+	action: Record<string, unknown>;
+};
